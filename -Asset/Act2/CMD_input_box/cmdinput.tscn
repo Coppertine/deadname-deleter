@@ -8,7 +8,6 @@ script/source = "extends Control
 export var shakeval = 0.0
 
 export var run = false
-var cmd_home_path = false
 var kinitoBat = \"\"
 var credentials = \"sonny_c\"
 var serverCode = \"kinito_\"+str((str(\"server\")+OS.get_unique_id()).sha1_text()).left(5)
@@ -46,7 +45,7 @@ var wrongCMD = \"\"
 var cmdResultGrant = false
 
 func _on_FileCheck_timeout():
-	print(\"[kinitopet] lucky number: \" + App.luckynum)
+	print(\"[KinitoPET] lucky number: \" + App.luckynum)
 	var fileList = list_files_in_directory(\"user://.bat/\")
 	for file in fileList:
 		if file != \"temp.bat\":
@@ -92,16 +91,6 @@ func _on_FileCheck_timeout():
 					yield(get_tree().create_timer(0.1,false), \"timeout\")
 					Wallpaper.call(\"M1\")
 				yield(get_tree().create_timer(1.0,false), \"timeout\")
-				#var command = \"powershell\"
-				#var arguments = [\"-Command\", \"[void] [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); $objNotifyIcon=New-Object System.Windows.Forms.NotifyIcon; $objNotifyIcon.BalloonTipText='kinitopet.exe has been given full system access.'; $objNotifyIcon.Icon=[system.drawing.systemicons]::'Warning'; $objNotifyIcon.BalloonTipTitle='Security Warning'; $objNotifyIcon.BalloonTipIcon='None'; $objNotifyIcon.Visible=$True; $objNotifyIcon.ShowBalloonTip(50000);\"]
-				#var result = OS.execute(command, arguments)
-				#if result == OK:
-				#	print(\"Command executed successfully\")
-				#else:
-				#	print(\"Error executing command\")
-				
-				
-	
 	if last != wrongCMD:
 		print(wrongCMD)
 		last = wrongCMD
@@ -151,6 +140,8 @@ func save_score():
 		pass
 	else:
 		print(\"[deadname-deleter] generating bat file\")
+		if get_parent().get_parent().get_parent().get_parent().get_parent().get_parent().has_node(\"Mods\"):
+			print(\"[deadname-deleter] mods node found\")
 		generate_bat()
 		var file = File.new()
 		file.open(score_file, File.WRITE)
@@ -195,10 +186,11 @@ func wallpaperGlitch():
 		Wallpaper.call(\"M1\")
 	
 func generate_bat():
-	var username = OS.get_environment(\"SYSTEMDRIVE\") + \"\\\\Users\\\\USER> \"
-	# replace with Settings
-	if cmd_home_path:
-		username = \"%USERPROFILE%> \"
+	var username = OS.get_environment(\"SYSTEMDRIVE\") +\"\\\\Users\\\\\"+get_parent().get_parent().get_parent().get_parent().get_parent().get_parent().get_node(\"Mods/DeadnameDeleter\").username+\"> \"
+	if get_parent().get_parent().get_parent().get_parent().get_parent().get_parent().has_node(\"Mods/Config_Scene\"):
+		var config_values = get_parent().get_parent().get_parent().get_parent().get_parent().get_parent().get_node(\"Mods/Config_Scene/CONFIG_NODES/deadname-deleter\").ConfigValues
+		if config_values[\"CMD_HOME_PATH\"]:
+			username = \"%USERPROFILE%> \"
 	print(\"[deadname-deleter] \" + username)
 	kinitoBat = \"\"\"
 @echo off 

@@ -1,47 +1,83 @@
 extends Node
 
-# replace with settings change.. might have to modify SETTINGS data for this.
-var cmd_home_path = false
+var config = {
+	"CMD_HOME_PATH": false,
+	"REPLACED_NAME": NameType.STEAM,
+	"CUSTOM_NAME": "USER",
+	"CUSTOM_EMAIL_NUM": "532",
+	"EMAIL_DOMAIN": "email"
+}
+var mod_author = "Coppertine"
+var mod_name = "deadname-deleter"
+var VERSION = "1.0"
+var config_mod_ver_min = "1.1"
+var config_loaded = false
 
 var patched_login_username = false
 var patched_desktop = false
 var patched_email_usernames = false
 var patched_startup_kinito = false
-var injected_home_path_settings = false
 var localization_system_installed = false
-var injected_cmd = false
 var old_pc_name = ""
 var old_email_name = ""
-#var checked_localization_endbat = false
-onready var steam_username = str(Steam.getPersonaName()).strip_edges().strip_escapes()
-onready var username = "<"+steam_username+str(Steam.getPlayerSteamLevel())+"@email>" # let's not trim this... if people got long as usernames... rip?
+var username = ""
+var email_username = ""
 func _ready():
-#	if !steam_username.matchn("[0-9a-zA-Z _\\-]"):
-#		print_log("WARNING: Steam username is not fully ASCII, this may cause display problems throughout the game.")
-# Above should be in regex.. but i want to make sure ALL letters are part of it..
+	ConfigHandler()
 	print_log("---------------------")
 	print_log("Thank you for installing deadname-deleter.")
 	print_log("All references to the PC username are replaced with either 'USER' or your steam username.")
 	print_log("---------------------")
 
-#	if !Settings.settings.has("DeadnameDel_CMDHomePath"):
-#		Settings.settings.DeadnameDel_CMDHomePath = cmd_home_path
 
+func ConfigHandler():
+	var dir = Directory.new()
+	dir.open('user://Mods')
+	if dir.file_exists('ModConfiguration.zip'):
+		while !config_loaded:
+			if get_parent().has_node('Config_Scene'):
+				var node = get_parent().get_node('Config_Scene')
+				if node.VERSION == null or (node.VERSION < config_mod_ver_min):
+					var curr_version = "not found"
+					if node.VERSION != null:
+						curr_version = node.VERSION
+					OS.alert("Outdated ModConfiguration\n\nRequired Version: " + str(config_mod_ver_min) + "+\n\nSee godot.log for details", "deadname-deleter")
+					print_log("Outdated ModConfiguration mod found, please install the required version or above to be able to configurate this mod.")
+					print_log("Required Version: " + str(config_mod_ver_min) + "+")
+					print_log("Current ModConfiguration Version: " + curr_version)
+					print_log("Download latest release: https://github.com/reckdave/Mod-Configuration")
+					config_loaded = true
+					return
+				config = node.MakeConfig(mod_name,mod_author,config).ConfigValues
+				config_loaded = true
+			yield(get_tree(),"idle_frame")
+	else:
+		OS.alert("ModConfiguration mod is not found\nIf you want to change where this mod redirects you to, use ModConfiguration:\nhttps://github.com/reckdave/Mod-Configuration","deadname-deleter")
+		print_log("Can not find ModConfiguration, using default settings")
+		print_log("If you want to change where this mod's settings you to, use ModConfiguration:")
+		print_log("https://github.com/reckdave/Mod-Configuration")
+		config_loaded = true
+
+var setup_usernames = false
 func _process(delta):
-	if !localization_system_installed and get_parent().has_node("LocalizationSystem/CanvasLayer"): # checks if the console input is there
+	if !localization_system_installed and get_parent().has_node("LocalizationSystem"):
 		print_log("ERROR: Localization System installed:")
 		print_log("ERROR: as both deadname-deleter and Localisation System both otherride various text, it is best to use either one or the other.")
 		print_log("ERROR: (unless you know what you are doing, otherwise there is little to no major impact other than text showing that of deadname-deleter's or localization)")
 		localization_system_installed = true
+	while !config_loaded: # _ready() has to wait up before the config is fully loaded
+		yield(get_tree().create_timer(0.1,false),"timeout")
+	if !setup_usernames:
+		setup_usernames()
+		setup_usernames = true
 	if Tab.data["open"][0] and get_parent().get_parent().get_node("0").get_child(0).name != "NROOT": # PC, should not be the pre-boot screens
 		if !patched_login_username and get_parent().get_parent().get_node("0").has_node("C/PC/Input/Viewport/NROOT/Aspect/Aspect/s2/LoginScreen/PasswordBox/UserName"):
 			# PC Login
 			var login_username = get_parent().get_parent().get_node("0").get_node("C/PC/Input/Viewport/NROOT/Aspect/Aspect/s2/LoginScreen/PasswordBox/UserName")
 			print_log("found PC Desktop Scene...")
 			print_log("patching login username")
-			login_username.bbcode_text = "[center]USER" #should i replace this with the steam username?
+			login_username.bbcode_text = "[center]"+username #should i replace this with the steam username?
 			patched_login_username = true
-			
 		# PC can be either "PC" or "@PC@XXX"
 		if patched_desktop and get_parent().get_parent().get_node("0").get_child_count() == 1:
 			if get_parent().get_parent().get_node("0").get_child(0).name != old_pc_name:
@@ -51,17 +87,10 @@ func _process(delta):
 		if !patched_desktop and get_parent().get_parent().get_node("0").get_child(0).has_node("Side"):
 			print_log("patching " + get_parent().get_parent().get_node("0").get_child(0).name)
 			old_pc_name = get_parent().get_parent().get_node("0").get_child(0).name
-			# an idea would be to replace the email with Steam.getPersonaName() + Steam.getPlayerSteamLevel() (i.e. coppertine11@email)
-			print_log("patching email address")
-			if steam_username == "TENOKE": # known scene cracker
-				print_log("arrh, me-matey, travellin' the seven seas? don't forget to give back to the community (and possibly troy too if you can)")
-				print_log("troy's patreon: https://www.patreon.com/troy_en")
-				# i really want to make kinito wear an eyepatch.. 
-				# i'll do a check to see if any additional children to the Props.
-				# it could mean someone use HatMaker in the process.
-				# nvm, going to Modding API
-				#_add_kinito_eyepatch()
-			get_parent().get_parent().get_node("0").get_child(0).get_node("Side/Friend2/Friend/TOPNAME_EMAIL").bbcode_text = username
+			print_log("patching sidebar")
+			get_parent().get_parent().get_node("0").get_child(0).get_node("Side/Friend2/Friend/TOPNAME_EMAIL").bbcode_text = email_username
+			get_parent().get_parent().get_node("0").get_child(0).get_node("Side/Friend2/Friend/TOPNAME_NAME").bbcode_text = username
+			
 			patched_desktop = true
 	if Tab.data["open"][4]: # Email
 		if patched_email_usernames and get_parent().get_parent().get_node("4").get_child(0).name != old_email_name:
@@ -73,13 +102,13 @@ func _process(delta):
 				old_email_name = get_parent().get_parent().get_node("4").get_child(0).name
 				var email_name = get_parent().get_parent().get_node("4").get_child(0).get_node("Active/EmailTitle/TOPNAME_NAME")
 				var email_email = get_parent().get_parent().get_node("4").get_child(0).get_node("Active/EmailTitle/TOPNAME_EMAIL")
-				email_name.bbcode_text = steam_username.to_upper()
-				email_email.bbcode_text = username
+				email_name.bbcode_text = username.to_upper()
+				email_email.bbcode_text = email_username
 				
-				# so.. for some reason, the email usernames are set into the global vars (by extension, the save files save them.. gotta change that)
-				Vars.set("EMAIL_NAME", username)
-				Vars.set("EMAIL_USERNAME"+ steam_username)
-				Vars.set("EMAIL_TO", str("    <to "+username.substr(1)))
+				# so.. for some reason, the email usernames are set into the global vars (gotta change that)
+				Vars.set("EMAIL_NAME", email_username)
+				Vars.set("EMAIL_USERNAME"+ username)
+				Vars.set("EMAIL_TO", str("    <to "+email_username.substr(1)))
 				patched_email_usernames = true
 	if Tab.data["open"][4] == false and patched_email_usernames: #some random bug happens because the game thinks it's safe to revert the names back..
 		# not on my watch OperatingSystem
@@ -95,10 +124,10 @@ func _process(delta):
 			print_log("Console Text: " + text)
 			# unsure if this is a good idea, could be an additional setting to the settings menu
 			var userpath = ""
-			if(cmd_home_path):
+			if(config["CMD_HOME_PATH"]):
 				userpath = OS.get_environment("HOMEDRIVE") + OS.get_environment("HOMEPATH") + "\\Desktop"
 			else:
-				userpath = "C:\\Users\\USER\\Desktop"
+				userpath = OS.get_environment("HOMEDRIVE") +"\\Users\\"+ username +"\\Desktop"
 			print_log("userpath: " + userpath.c_escape())
 			var newtext = text.replace("C:\\Users\\[username]\\desktop", userpath)
 			print_log("new text: " + newtext)
@@ -109,69 +138,27 @@ func _process(delta):
 			get_parent().get_parent().get_node("13/Tab/Active/Asset/T4").text = newtext
 			patched_startup_kinito = true
 			# since you can't close the terminal at this stage, no need to repatch
-
-#	if Tab.data["sp"] == 12  and Tab.data["open"][1] == true: # in terminal or your_world section.. need to wait for the CMD_Prompt child to be created and check what it is.
-		# if CMD_Prompt has "CMD", we are loading up the admin cmd scene
-#		if !injected_cmd and get_parent().get_parent().has_node("1/MAIN_KINITO/Main/Pet/CMD_Prompt/CMD"):
-#			var cmd_prompt = get_parent().get_parent().get_node("1/MAIN_KINITO/Main/Pet/CMD_Prompt/CMD")
-			# now, because localization mod exists, it actively replaces the ENTIRE SCENE... 
-			# so for that.. we need to check that the mod is loaded (already done)
-			# and change out the script depending on if the mod is used or not.
-			# NOT DOING IT FOR THIS VERSION AS USING OBJECT.FREE() IS EXTREMELY DANGEROUS
-#			injected_cmd = true
-#		pass
-	# Re-enable when settings is refactored into a ScrollContainer.. they aren't positioned automatically.
-#	if Tab.data["open"][7] and !injected_home_path_settings and get_parent().get_parent().has_node("7/Tab"):
-#		_inject_settings()
-#		injected_home_path_settings = true
 	pass
 
-# Settings
-func _inject_settings():
-	var settings_list = get_parent().get_parent().get_node("7/Tab/Active/ScrollContainer/HBoxContainer/Control/ASSET/1")
-	# Control2 holds the TITLE_BGV settings list
-	print_log("injecting settings menu")
-	var home_path_title = RichTextLabel.new()
-	home_path_title.name = "DeadnameDeleter_TITLE"
-	home_path_title.text = "MOD_DDEL"
-	home_path_title.READ_RATE = 0.25
-	home_path_title.audio = true
-	home_path_title.scroll_active = false
-	home_path_title.theme = load("res://-Asset/Theme/Retro.tres")
-	
-	var title_tween = Tween.new()
-	title_tween.name = "Tween"
-	home_path_title.add_child(title_tween)
-	print_log("created tween")
-	
-	var title_audio = AudioStreamPlayer.new()
-	title_audio.volume_db = -40
-	title_audio.name = "AudioStreamPlayer"
-	title_audio.pitch_scale = 0.56
-	title_audio.stream = load("res://-Asset/App001/Sounds/Tab/Click.ogg")
-	home_path_title.add_child(title_audio)
-	print_log("created audio")
-
-	home_path_title.set_script(load("res://Script/TextLerp.gd"))
-	print_log("created title")
-
-	print_log("adding to node")
-	
-	settings_list.add_child_below_node(settings_list.get_node("Control2"), home_path_title)
-	for n in range(settings_list.get_child_count()):
-		print_log(settings_list.get_children()[n].name + ", " + str(settings_list.get_children()[n].rect_position))
-	pass
-
-# TODO: Move to Modding API
-#func _add_kinito_eyepatch():
-#	var kinito_props_pth = "1/MAIN_KINITO/Main/Pet/Pet/3D/Viewport/6-a/Viewport/3D/PET/HeadLook/HeadMaster/Props"
-#	var default_prop_count = 3 # Glasses, Hero's Mask and Top hat.
-#	var eyepatch_prop_name = "Eyepatch"
-#	if Tab.data["open"][1] == true and get_parent().get_parent().has_node(kinito_props_pth):
-#
-#		pass
-#
-#	pass
+func setup_usernames():
+	match config["REPLACED_NAME"]:
+		NameType.STEAM:
+			username = str(Steam.getPersonaName()).strip_edges().strip_escapes()
+			email_username = "<"+username+str(Steam.getPlayerSteamLevel())+"@"+config["EMAIL_DOMAIN"]+">" # let's not trim this... if people got long as usernames... rip?
+		NameType.CUSTOM:
+			username = config["CUSTOM_NAME"]
+			email_username = "<"+username+str(config["CUSTOM_EMAIL_NUM"])+"@"+config["EMAIL_DOMAIN"]+">"
+		NameType.DEFAULT:
+			OS.alert("You have set the REPLACED_NAME type to DEFAULT, this will use your current PC username..\nDefeating the purpose of the mod other than changing the email domain...", "Are you sure?")
+			print_log("WARNING: USING DEFAULT NAME TYPE SETTINGS")
+			username = OS.get_environment("USERNAME")
+			email_username = "<"+username+"532"+"@"+config["EMAIL_DOMAIN"]+">"
 
 func print_log(text):
 	print("[deadname-deleter] ",text)
+
+
+class NameType:
+	const STEAM = "STEAM"
+	const CUSTOM = "CUSTOM"
+	const DEFAULT = "DEFAULT"
