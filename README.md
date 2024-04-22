@@ -1,5 +1,5 @@
 <p align="center">
-  <img height="400" width="auto" style="aspect-ratio=2588/1028;" src="https://github.com/Coppertine/deadname-deleter/assets/37494321/944e0bae-7b79-4180-b835-13df8e6ef344">
+  <img height="auto" style="aspect-ratio=2588/1028;" src="https://github.com/Coppertine/deadname-deleter/assets/37494321/944e0bae-7b79-4180-b835-13df8e6ef344">
 </p>
 <p align="center">
 A <a href="https://store.steampowered.com/app/2075070/KinitoPET/">KinitoPET</a> Mod that exterminates those pesky PC Usernames...
