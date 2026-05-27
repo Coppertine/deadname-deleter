@@ -43,5 +43,5 @@ Aknowledgements
 ===
 Thank you [reckdave](https://github.com/reckdave) for helping out with mod development, I could not be here without your support (and the Mod Configuration mod of course).
 
-Although 90% of the code is of my own, a lot of KinitoPET modding requires replacement of particular parts of the game. Therefore, some parts of each mod comes from the original mod.
+Although 90% of the code is of my own, a lot of KinitoPET modding requires replacement of particular parts of the game. Therefore, some parts of each mod comes from the original game.
 These are only used as replacements and will not work without being loaded as a mod into the game. Therefore.. just buy the game if you haven't.
